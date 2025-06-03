@@ -3,7 +3,7 @@ export interface IAnimationConfig {
   url: string;
   width: number;
   height: number;
-  frames: Record<
+  animations: Record<
     string,
     {
       start: number;

@@ -34,32 +34,6 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
     this.scene.add.existing(this);
     this.config = config;
     this.activeAnimation = null;
-
-    // this.on(
-    //   "animationupdate",
-    //   (
-    //     anim: Phaser.Animations.Animation,
-    //     frame: Phaser.Animations.AnimationFrame
-    //   ) => {
-    //     console.log("anim", this.activeAnimation);
-    //     if (this.activeAnimation === "attack") {
-    //       const actionFrames =
-    //         this.config.frames[this.activeAnimation]?.actionFrames;
-    //       if (actionFrames) {
-    //         console.log(
-    //           actionFrames?.[1].frame -
-    //             this.config.frames[this.activeAnimation].start,
-    //           frame.index
-    //         );
-    //         actionFrames.forEach((actionFrame) => {
-    //           if (actionFrame.frame === frame.index) {
-    //             console.log(anim, frame);
-    //           }
-    //         });
-    //       }
-    //     }
-    //   }
-    // );
   }
 
   public static async load(
@@ -91,7 +65,7 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
 
   private static update() {
     this.frames.forEach((anim) => {
-      Object.entries(anim.frames).forEach(([key, value]) => {
+      Object.entries(anim.animations).forEach(([key, value]) => {
         const repeat: { repeat?: number } = {};
 
         repeat.repeat = value.loop ? -1 : value.repeat;
@@ -111,7 +85,7 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
 
   private updateSpeed() {
     const frameRate = this.activeAnimation
-      ? this.config.frames[this.activeAnimation]?.frameRate
+      ? this.config.animations[this.activeAnimation]?.frameRate
       : 1;
     this.anims.msPerFrame = 1000 / (frameRate * this.speedMultiplier);
   }
@@ -238,17 +212,18 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
         anim: Phaser.Animations.Animation,
         frame: Phaser.Animations.AnimationFrame
       ) => {
-        const events = this.config.frames[key]?.events;
+        const events = this.config.animations[key]?.events;
         if (events) {
           if (typeof events === "number") {
-            const currentStep = events - this.config.frames[key].start;
+            const currentStep = events - this.config.animations[key].start;
 
             if (currentStep + 1 === frame.index) {
               this.handleFrameEvents(key, "single_event", events, currentStep);
             }
           } else {
             events.forEach((event) => {
-              const currentStep = event.frame - this.config.frames[key].start;
+              const currentStep =
+                event.frame - this.config.animations[key].start;
 
               if (currentStep + 1 === frame.index) {
                 this.handleFrameEvents(
@@ -302,17 +277,17 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
   }
 
   private handleStartFrameEvents(anim: string, key: string) {
-    const events = this.config.frames[key]?.events;
+    const events = this.config.animations[key]?.events;
 
     if (typeof events === "number") {
-      if (events - this.config.frames[key].start === 0) {
+      if (events - this.config.animations[key].start === 0) {
         this.handleFrameEvents(anim, "single_event", events, 0);
       }
       return;
     }
 
     const firstIndexEvent = events?.find(
-      (event) => event.frame - this.config.frames[key].start === 0
+      (event) => event.frame - this.config.animations[key].start === 0
     );
 
     if (firstIndexEvent) {
