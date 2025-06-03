@@ -240,13 +240,21 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
       ) => {
         const events = this.config.frames[key]?.events;
         if (events) {
-          events.forEach((event) => {
-            const currentStep = event.frame - this.config.frames[key].start;
+          if (typeof events === "number") {
+            const currentStep = events - this.config.frames[key].start;
 
             if (currentStep + 1 === frame.index) {
-              this.handleFrameEvents(event.key, event.frame, currentStep);
+              this.handleFrameEvents(key, events, currentStep);
             }
-          });
+          } else {
+            events.forEach((event) => {
+              const currentStep = event.frame - this.config.frames[key].start;
+
+              if (currentStep + 1 === frame.index) {
+                this.handleFrameEvents(event.key, event.frame, currentStep);
+              }
+            });
+          }
         }
       }
     );
@@ -290,6 +298,14 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
 
   private handleStartFrameEvents(key: string) {
     const events = this.config.frames[key]?.events;
+
+    if (typeof events === "number") {
+      if (events - this.config.frames[key].start === 0) {
+        this.handleFrameEvents(key, events, 0);
+      }
+      return;
+    }
+
     const firstIndexEvent = events?.find(
       (event) => event.frame - this.config.frames[key].start === 0
     );
