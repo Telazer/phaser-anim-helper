@@ -48,10 +48,10 @@ export class InitScene extends Phaser.Scene {
 
     AnimHelper.load(this, [
       {
-        sprite: "adventurer",
-        url: "[path-to-asset-folder]/adventurer.png",
-        width: 50, // frame width
-        height: 37, // frame height
+        sprite: "player",
+        url: "[path-to-asset-folder]/player.png",
+        width: 16, // frame width
+        height: 16, // frame height
         frames: {
           idle: { start: 0, end: 3, frameRate: 5, loop: true },
           run: { start: 4, end: 7, frameRate: 5, loop: true },
@@ -74,7 +74,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-    const anim = AnimHelper.render(this, "spriteName", 100, 100);
+    const anim = AnimHelper.render(this, "player", 100, 100);
   }
 }
 ```
@@ -112,6 +112,84 @@ anim.offComplete();
 // offRepeate(handler); or offRepeat(); to remove listeners.
 anim.onRepeat(() => {
   console.log("animation repeated");
+});
+```
+
+### Frame Events
+
+Set events in the frames config.
+
+```typescript
+AnimHelper.load(this, [
+  {
+    sprite: "player",
+    url: "[path-to-asset-folder]/player.png",
+    width: 16,
+    height: 16,
+    frames: {
+      ...
+      attack: {
+        start: 8,
+        end: 12,
+        frameRate: 5,
+        loop: true,
+        events: 10, <---
+      },
+      ...
+    },
+  },
+]);
+```
+
+Then add listener for the event.
+
+```typescript
+const anim = AnimHelper.render(this, "adventurer", 100, 100);
+
+anim.onFrameEvent((event) => {
+  // Listener will be triggered when the animation reaches to desired frame.
+  // event.anim: "attack"
+  // event.key: "single_event"
+  // event.frame: 10
+  // event.step: 2 (absolute index)
+});
+```
+
+#### Set multiple Frame Events
+
+```typescript
+AnimHelper.load(this, [
+  {
+    sprite: "adventurer",
+    url: "[path-to-asset-folder]/adventurer.png",
+    width: 16,
+    height: 16,
+    frames: {
+      ...
+      attack: {
+        start: 8,
+        end: 12,
+        frameRate: 5,
+        loop: true,
+        events: [
+          { key: "start", frame: 8 },
+          { key: "hit", frame: 10 },
+          { key: "recover", frame: 11 },
+        ]
+      },
+      ...
+    },
+  },
+]);
+
+
+const anim = AnimHelper.render(this, "adventurer", 100, 100);
+
+anim.onFrameEvent((event) => {
+  // event.anim: "attack"
+  // event.key: "hit"
+  // event.frame: 10
+  // event.step: 2 (absolute index)
 });
 ```
 

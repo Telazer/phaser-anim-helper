@@ -17,6 +17,7 @@ export interface IAnimationConfig {
 }
 
 export interface IAnimationEvent {
+  anim: string;
   key: string;
   frame: number;
   step: number;

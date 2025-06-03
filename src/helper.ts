@@ -226,7 +226,7 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
     this.updateSpeed();
 
     // Check if the animation has a start indexed event and trigger it
-    this.handleStartFrameEvents(key);
+    this.handleStartFrameEvents(key, key);
 
     this.off("animationcomplete");
     this.off("animationrepeat");
@@ -244,14 +244,19 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
             const currentStep = events - this.config.frames[key].start;
 
             if (currentStep + 1 === frame.index) {
-              this.handleFrameEvents(key, events, currentStep);
+              this.handleFrameEvents(key, "single_event", events, currentStep);
             }
           } else {
             events.forEach((event) => {
               const currentStep = event.frame - this.config.frames[key].start;
 
               if (currentStep + 1 === frame.index) {
-                this.handleFrameEvents(event.key, event.frame, currentStep);
+                this.handleFrameEvents(
+                  key,
+                  event.key,
+                  event.frame,
+                  currentStep
+                );
               }
             });
           }
@@ -296,12 +301,12 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
     super.destroy();
   }
 
-  private handleStartFrameEvents(key: string) {
+  private handleStartFrameEvents(anim: string, key: string) {
     const events = this.config.frames[key]?.events;
 
     if (typeof events === "number") {
       if (events - this.config.frames[key].start === 0) {
-        this.handleFrameEvents(key, events, 0);
+        this.handleFrameEvents(anim, "single_event", events, 0);
       }
       return;
     }
@@ -311,13 +316,23 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
     );
 
     if (firstIndexEvent) {
-      this.handleFrameEvents(firstIndexEvent.key, firstIndexEvent.frame, 0);
+      this.handleFrameEvents(
+        anim,
+        firstIndexEvent.key,
+        firstIndexEvent.frame,
+        0
+      );
     }
   }
 
-  private handleFrameEvents(key: string, frame: number, step: number) {
+  private handleFrameEvents(
+    anim: string,
+    key: string,
+    frame: number,
+    step: number
+  ) {
     this.onFrameEventHandlers.forEach((handler) => {
-      handler({ key, frame, step });
+      handler({ anim, key, frame, step });
     });
   }
 }
