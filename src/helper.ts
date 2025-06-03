@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { IAnimationConfig } from "./types";
+import { IAnimationEvent, IAnimationConfig } from "./types";
 
 export class AnimHelper extends Phaser.GameObjects.Sprite {
   private static gamePaused?: boolean;
@@ -15,6 +15,7 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
   private onRepeatHandlers: (() => void)[] = [];
   private onCompleteOnceHandlers: (() => void)[] = [];
   private onRepeatOnceHandlers: (() => void)[] = [];
+  private onFrameEventHandlers: ((data: IAnimationEvent) => void)[] = [];
 
   private constructor(
     scene: Phaser.Scene,
@@ -33,6 +34,32 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
     this.scene.add.existing(this);
     this.config = config;
     this.activeAnimation = null;
+
+    // this.on(
+    //   "animationupdate",
+    //   (
+    //     anim: Phaser.Animations.Animation,
+    //     frame: Phaser.Animations.AnimationFrame
+    //   ) => {
+    //     console.log("anim", this.activeAnimation);
+    //     if (this.activeAnimation === "attack") {
+    //       const actionFrames =
+    //         this.config.frames[this.activeAnimation]?.actionFrames;
+    //       if (actionFrames) {
+    //         console.log(
+    //           actionFrames?.[1].frame -
+    //             this.config.frames[this.activeAnimation].start,
+    //           frame.index
+    //         );
+    //         actionFrames.forEach((actionFrame) => {
+    //           if (actionFrame.frame === frame.index) {
+    //             console.log(anim, frame);
+    //           }
+    //         });
+    //       }
+    //     }
+    //   }
+    // );
   }
 
   public static async load(
@@ -66,11 +93,8 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
     this.frames.forEach((anim) => {
       Object.entries(anim.frames).forEach(([key, value]) => {
         const repeat: { repeat?: number } = {};
-        if (value.loop) {
-          repeat.repeat = -1;
-        } else if (value.repeat) {
-          repeat.repeat = value.repeat;
-        }
+
+        repeat.repeat = value.loop ? -1 : value.repeat;
 
         this.scene.anims.create({
           key: `${anim.sprite}_${key}`,
@@ -109,6 +133,7 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
   public static render(scene: Phaser.Scene, key: string, x: number, y: number) {
     const newAnimation = new AnimHelper(scene, x, y, key);
     this.animations.push(newAnimation);
+
     return newAnimation;
   }
 
@@ -137,6 +162,11 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
 
   public onRepeatOnce(handler: () => void) {
     this.onRepeatOnceHandlers.push(handler);
+    return this;
+  }
+
+  public onFrameEvent(handler: (data: IAnimationEvent) => void) {
+    this.onFrameEventHandlers.push(handler);
     return this;
   }
 
@@ -180,28 +210,55 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
     }
   }
 
-  public async run(key: string) {
+  public offFrameEvent(handler?: () => void) {
+    if (handler) {
+      this.onFrameEventHandlers = this.onFrameEventHandlers.filter(
+        (h) => h !== handler
+      );
+    } else {
+      this.onFrameEventHandlers = [];
+    }
+  }
+
+  public async run(key: string): Promise<AnimHelper> {
     super.play(`${this.config.sprite}_${key}`);
     this.activeAnimation = key;
     this.updateSpeed();
 
+    // Check if the animation has a start indexed event and trigger it
+    this.handleStartFrameEvents(key);
+
     this.off("animationcomplete");
     this.off("animationrepeat");
+    this.off("animationupdate");
 
     this.on(
-      "animationrepeat",
+      "animationupdate",
       (
         anim: Phaser.Animations.Animation,
         frame: Phaser.Animations.AnimationFrame
       ) => {
-        this.onRepeatHandlers.forEach((handler) => handler());
+        const events = this.config.frames[key]?.events;
+        if (events) {
+          events.forEach((event) => {
+            const currentStep = event.frame - this.config.frames[key].start;
 
-        this.onRepeatOnceHandlers.forEach((handler) => {
-          handler();
-          this.offRepeatOnce(handler);
-        });
+            if (currentStep + 1 === frame.index) {
+              this.handleFrameEvents(event.key, event.frame, currentStep);
+            }
+          });
+        }
       }
     );
+
+    this.on("animationrepeat", () => {
+      this.onRepeatHandlers.forEach((handler) => handler());
+
+      this.onRepeatOnceHandlers.forEach((handler) => {
+        handler();
+        this.offRepeatOnce(handler);
+      });
+    });
 
     return new Promise((resolve) => {
       this.on("animationcomplete", () => {
@@ -212,7 +269,7 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
           this.offCompleteOnce(handler);
         });
 
-        resolve(true);
+        resolve(this);
       });
     });
   }
@@ -220,12 +277,31 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
   public destroy() {
     this.off("animationcomplete");
     this.off("animationrepeat");
+    this.off("animationupdate");
 
     this.onCompleteHandlers = [];
     this.onRepeatHandlers = [];
     this.onCompleteOnceHandlers = [];
     this.onRepeatOnceHandlers = [];
+    this.onFrameEventHandlers = [];
 
     super.destroy();
+  }
+
+  private handleStartFrameEvents(key: string) {
+    const events = this.config.frames[key]?.events;
+    const firstIndexEvent = events?.find(
+      (event) => event.frame - this.config.frames[key].start === 0
+    );
+
+    if (firstIndexEvent) {
+      this.handleFrameEvents(firstIndexEvent.key, firstIndexEvent.frame, 0);
+    }
+  }
+
+  private handleFrameEvents(key: string, frame: number, step: number) {
+    this.onFrameEventHandlers.forEach((handler) => {
+      handler({ key, frame, step });
+    });
   }
 }

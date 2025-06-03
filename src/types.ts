@@ -11,6 +11,13 @@ export interface IAnimationConfig {
       frameRate: number;
       repeat?: number;
       loop?: boolean;
+      events?: { key: string; frame: number }[];
     }
   >;
+}
+
+export interface IAnimationEvent {
+  key: string;
+  frame: number;
+  step: number;
 }
