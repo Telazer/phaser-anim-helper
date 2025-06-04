@@ -2,6 +2,8 @@
 
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-blue)](https://github.com/Telazer/phaser-anim-helper)
 
+For more helpers and utilities, check out [Telazer NPM Page](https://www.npmjs.com/org/telazer)
+
 A TypeScript utility library for [Phaser 4](https://phaser.io) that simplifies animation handling and manipulation. It offers powerful helpers for:
 
 - Auto-frame configuration
