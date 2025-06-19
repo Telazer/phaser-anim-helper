@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { IAnimationEvent, IAnimationConfig } from "./types";
 
 export class AnimHelper extends Phaser.GameObjects.Sprite {
+  private static debug: boolean = false;
   private static gamePaused?: boolean;
   private static scene: Phaser.Scene;
   private static frames: IAnimationConfig[] = [];
@@ -26,14 +27,29 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
   ) {
     const config = AnimHelper.frames.find((anim) => anim.sprite === texture);
 
-    if (!config) {
-      throw new Error(`Animation config not found for sprite: ${texture}`);
+    if (!config && AnimHelper.debug) {
+      console.warn(
+        `Animation config not found for sprite: ${texture}, using default config`
+      );
     }
-    super(scene, x, y, config.sprite, frame);
+
+    super(scene, x, y, config?.sprite || texture, frame);
     this.scene = scene;
     this.scene.add.existing(this);
-    this.config = config;
+    this.config = config || {
+      sprite: texture,
+      animations: {},
+      url: "",
+      width: 0,
+      height: 0,
+    };
     this.activeAnimation = null;
+  }
+
+  public static setDebug(debug: boolean) {
+    this.debug = debug;
+
+    return this;
   }
 
   public static async load(
