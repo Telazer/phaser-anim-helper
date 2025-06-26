@@ -18,6 +18,8 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
   private onRepeatOnceHandlers: (() => void)[] = [];
   private onFrameEventHandlers: ((data: IAnimationEvent) => void)[] = [];
 
+  private isOnCompleteTriggered: boolean = false;
+
   private constructor(
     scene: Phaser.Scene,
     x: number,
@@ -133,6 +135,12 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
       this.updateSpeed();
     }
     return this;
+  }
+
+  public async waitForOnComplete() {
+    this.isOnCompleteTriggered = false;
+
+    return await this.checkOnComplete();
   }
 
   public onComplete(handler: () => void) {
@@ -266,6 +274,7 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
 
     return new Promise((resolve) => {
       this.on("animationcomplete", () => {
+        this.isOnCompleteTriggered = true;
         this.onCompleteHandlers.forEach((handler) => handler());
 
         this.onCompleteOnceHandlers.forEach((handler) => {
@@ -325,5 +334,14 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
     this.onFrameEventHandlers.forEach((handler) => {
       handler({ anim, key, frame, step });
     });
+  }
+
+  private async checkOnComplete(): Promise<boolean> {
+    if (!this.isOnCompleteTriggered) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return await this.checkOnComplete();
+    }
+
+    return true;
   }
 }
