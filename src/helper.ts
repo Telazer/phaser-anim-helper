@@ -105,7 +105,19 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
     const frameRate = this.activeAnimation
       ? this.config.animations[this.activeAnimation]?.frameRate
       : 1;
+
+    // If speed is zero or negative, pause the animation to avoid Infinity msPerFrame
+    if (!frameRate || this.speedMultiplier <= 0) {
+      this.anims.pause();
+      return;
+    }
+
     this.anims.msPerFrame = 1000 / (frameRate * this.speedMultiplier);
+
+    // Ensure animation is running if not globally paused
+    if (!AnimHelper.gamePaused) {
+      this.anims.resume();
+    }
   }
 
   public static pause() {
@@ -127,6 +139,16 @@ export class AnimHelper extends Phaser.GameObjects.Sprite {
     this.animations.push(newAnimation);
 
     return newAnimation;
+  }
+
+  public pause() {
+    this.anims.pause();
+    return this;
+  }
+
+  public resume() {
+    this.anims.resume();
+    return this;
   }
 
   public speed(speed: number) {
